@@ -12,14 +12,14 @@ def create_current_portfolio_pivot(df):
     # 1) Drop any records missing required info
     df = df.dropna(subset=[
         "Asset Category", "Name", "Ticker",
-        "Custodian", "Account Info", "Value"
+        "Custodian", "Account Type", "Account Number", "Value"
     ]).copy()
 
     # 2) Pre-aggregate & keep only truly non-zero holdings
     df = (
         df
         .groupby(
-            ["Asset Category", "Name", "Ticker", "Custodian", "Account Info"],
+            ["Asset Category", "Name", "Ticker", "Custodian", "Account Type", "Account Number"],
             as_index=False
         )["Value"]
         .sum()
@@ -39,7 +39,7 @@ def create_current_portfolio_pivot(df):
     # 4) Pivot
     pivot = df.pivot_table(
         index=["Asset Category", "Name", "Ticker"],
-        columns=["Custodian", "Account Info"],
+        columns=["Custodian", "Account Type", "Account Number"],
         values="Value",
         aggfunc="sum",
         fill_value=None  # Do not fill with 0s
@@ -50,8 +50,8 @@ def create_current_portfolio_pivot(df):
 
     # 6) Flatten the column MultiIndex for AgGrid compatibility
     pivot.columns = [
-        f"{cust} | {acct}" if pd.notna(cust) and pd.notna(acct) else str(cust)
-        for cust, acct in pivot.columns
+        " | ".join([str(cust), str(acct_type), str(acct_num)])
+        for cust, acct_type, acct_num in pivot.columns
     ]
 
     # 7) Replace 0s and NaN with blank (empty string)
@@ -63,17 +63,17 @@ def create_aggrid_data(df):
     """
     Create data structure suitable for AgGrid interactive pivot table
     """
-    # Just return the processed data without pivoting for AgGrid to handle
+    # Prepare data for AgGrid interactive pivot table
     df = df.dropna(subset=[
         "Asset Category", "Name", "Ticker",
-        "Custodian", "Account Info", "Value"
+        "Custodian", "Account Type", "Account Number", "Value"
     ]).copy()
 
     # Pre-aggregate & keep only truly non-zero holdings
     df = (
         df
         .groupby(
-            ["Asset Category", "Name", "Ticker", "Custodian", "Account Info"],
+            ["Asset Category", "Name", "Ticker", "Custodian", "Account Type", "Account Number"],
             as_index=False
         )["Value"]
         .sum()
@@ -89,5 +89,7 @@ def create_aggrid_data(df):
         categories=present + rest,
         ordered=True
     )
-    
-    return df.sort_values("Asset Category")
+
+    # Sort for display
+    df = df.sort_values(["Asset Category", "Name", "Ticker"]).reset_index(drop=True)
+    return df

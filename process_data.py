@@ -4,10 +4,9 @@ import streamlit as st
 def process_data(df, show_log=True):
     processed_df = df.copy()
     log_msgs = []
-    # Combine 'Account Type' and 'Account Number' into 'Account Info', then drop the originals
+    # Combine 'Account Type' and 'Account Number' into 'Account Info', but do NOT drop the originals
     if 'Account Type' in processed_df.columns and 'Account Number' in processed_df.columns:
         processed_df['Account Info'] = processed_df['Account Type'].astype(str) + ' (' + processed_df['Account Number'].astype(str) + ')'
-        processed_df = processed_df.drop(['Account Type', 'Account Number'], axis=1)
         log_msgs.append(("success", "'Account Info' column created in the format: Account Type (Account Number)."))
     else:
         log_msgs.append(("warning", "'Account Type' and/or 'Account Number' columns not found in the uploaded file."))

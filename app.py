@@ -41,18 +41,24 @@ def main():
         with tab3:
             processed_df = process_data(df, show_log=False)
             from current_portfolio import create_aggrid_data
-            from st_aggrid import AgGrid, GridOptionsBuilder, DataReturnMode
-            st.subheader("Current Portfolio - Interactive Pivot Table")
+            from st_aggrid import AgGrid, GridOptionsBuilder, DataReturnMode, JsCode
+            st.subheader(":bar_chart: Current Portfolio - Interactive Pivot Table")
             aggrid_data = create_aggrid_data(processed_df)
             gb = GridOptionsBuilder.from_dataframe(aggrid_data)
-            gb.configure_column("Asset Category", rowGroup=True, hide=True)
-            gb.configure_column("Name", rowGroup=True, hide=True)
-            gb.configure_column("Ticker", rowGroup=True, hide=True)
-            gb.configure_column("Custodian", pivot=True, hide=True)
-            gb.configure_column("Account Info", pivot=True, hide=True)
-            gb.configure_column("Value", aggFunc="sum")
+            gb.configure_column("Asset Category", rowGroup=True, hide=True, header_name="Asset Category")
+            gb.configure_column("Name", rowGroup=True, hide=True, header_name="Security Name")
+            gb.configure_column("Ticker", rowGroup=True, hide=True, header_name="Ticker")
+            gb.configure_column("Custodian", pivot=True, hide=True, header_name="Custodian")
+            gb.configure_column("Account Type", pivot=True, hide=True, header_name="Account Type")
+            gb.configure_column("Account Number", pivot=True, hide=True, header_name="Account Number")
+            gb.configure_column("Value", aggFunc="sum", type=["numericColumn","numberColumnFilter","customNumericFormat"],
+                               valueFormatter=JsCode('''function(params) {
+                                   if(params.value === undefined || params.value === null || params.value === "") return "";
+                                   return "$" + Number(params.value).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                               }'''),
+                               header_name="Value ($)")
             gb.configure_side_bar()
-            gb.configure_grid_options(pivotMode=True)
+            gb.configure_grid_options(pivotMode=True, domLayout='autoHeight', suppressAggFuncInHeader=True)
             gridOptions = gb.build()
             AgGrid(
                 aggrid_data,
@@ -60,6 +66,8 @@ def main():
                 data_return_mode=DataReturnMode.AS_INPUT,
                 fit_columns_on_grid_load=True,
                 enable_enterprise_modules=True,
+                allow_unsafe_jscode=True,
+                theme='alpine',
                 height=600,
                 width='100%'
             )
